@@ -1,6 +1,11 @@
 
 #### Autorzy: Kanstantsin Sasnouski, Tomasz Stefaniak
 
+## Kompilacja i uruchomienie
+$ ghc Main.hs</br>
+$ ./Main</br>
+</br>
+Projekt w tym momencie zawiera pliki NFA.hs(początkowa implementacja typu NFA) i Main.hs(uruchomienie NFA wraz z prostym przykładem)
 ## Automaty skończone - opis projektu
 Zaimplementowanie w języku Haskell niedeterministycznego automatu skończonego (NFA),</br>
 następnie stworzenie procedury przekształcenia go do DFA oraz algorytmu</br>
