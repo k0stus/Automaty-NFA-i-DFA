@@ -1,11 +1,12 @@
 
 #### Autorzy: Kanstantsin Sasnouski, Tomasz Stefaniak
 
-## Kompilacja i uruchomienie
-$ ghc Main.hs</br>
-$ ./Main</br>
-</br>
-Projekt w tym momencie zawiera pliki NFA.hs(początkowa implementacja typu NFA) i Main.hs(uruchomienie NFA wraz z prostym przykładem)
+## Kompilacja i uruchamianie
+* Kompilacja: 'scripts/build.sh' lub po prostu 'cabal build' </br>
+* Uruchomienie głównego programu: 'scripts/execute.sh'</br>
+* Uruchomienie wszystkich testów: 'scripts/test.s'h</br>
+* Uruchomienie pojedyńczego testu: 'cabal repl {nazwa-testu}'</br>
+
 ## Automaty skończone - opis projektu
 Zaimplementowanie w języku Haskell niedeterministycznego automatu skończonego (NFA),</br>
 następnie stworzenie procedury przekształcenia go do DFA oraz algorytmu</br>
