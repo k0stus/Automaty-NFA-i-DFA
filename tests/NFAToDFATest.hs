@@ -16,7 +16,7 @@ main :: IO ()
 main = hspec $ do
     describe "nfaToDFA" $ do
         it "convert NFA to DFA" $ do
-            nfa <- generateRandomNFA 15 (Set.fromList ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'])
+            nfa <- generateRandomNFA 15 (Set.fromList ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
             putStrLn (prettyPrintNFA nfa)
 
             let dfa = nfaToDFA nfa

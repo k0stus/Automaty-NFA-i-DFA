@@ -71,7 +71,7 @@ runWithNFA :: NFA -> IO ()
 runWithNFA nfa = do
   putStrLn "=== NFA ==="
   putStrLn (prettyPrintNFA nfa)
-  putStrLn $ "DEBUG: initial epsilon-closure of startState of nfa = " ++ show (epsilonClosure nfa (Set.singleton (Auto.NFA.startState nfa)))
+  -- putStrLn $ "DEBUG: initial epsilon-closure of startState of nfa = " ++ show (epsilonClosure nfa (Set.singleton (Auto.NFA.startState nfa)))
   
   let dfa = nfaToDFA nfa
   putStrLn "\n=== DFA ==="

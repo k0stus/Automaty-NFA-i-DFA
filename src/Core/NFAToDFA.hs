@@ -27,8 +27,9 @@ nfaToDFA nfa = DFA.DFA
     -- Zmienna od indeksu tzw stanu pułapkowego, który oznacza pustą listę stanów z NFA
     trapStateId = -1
     -- Obliczamy początkowy stan DFA jako epsilon-domknięcie stanu startowego NFA
-    rawInitClosure = NFA.epsilonClosure nfa (Set.singleton (NFA.startState nfa))
-    initClosure = trace ("Init closure: " ++ show rawInitClosure) rawInitClosure
+    -- rawInitClosure = NFA.epsilonClosure nfa (Set.singleton (NFA.startState nfa))
+    -- initClosure = trace ("Init closure: " ++ show rawInitClosure) rawInitClosure
+    initClosure = NFA.epsilonClosure nfa (Set.singleton (NFA.startState nfa))
     
     -- Inicjalizujemy struktury danych
     initialState = 0 -- Nadajemy pierwszy indeks dla stanu startowego DFA
@@ -56,7 +57,8 @@ nfaToDFA nfa = DFA.DFA
       let 
           currentStateId = stateMap Map.! currentSet
           -- Log the current set being processed, tied to alphabetList evaluation
-          alphabetList = trace ("Processing DFA state (from NFA states): " ++ show currentSet) (Set.toList (NFA.alphabet nfa))
+          -- alphabetList = trace ("Processing DFA state (from NFA states): " ++ show currentSet) (Set.toList (NFA.alphabet nfa))
+          alphabetList = Set.toList (NFA.alphabet nfa)
 
           -- Fold over symbols, accumulating new transitions, new states to explore (as NFA state sets),
           -- updated stateMap, the next available ID, and updated accepting states set.
@@ -69,10 +71,13 @@ nfaToDFA nfa = DFA.DFA
                 
                 -- Oblicz domknięcie epsilon, czyli stany osiągalne (kandydat do zostania nowym stanem DFA)
                 -- Ensure trace is evaluated by making it return the closure value.
-                rawClosure = if Set.null targets 
-                             then Set.empty -- specjalny zbiór dla stanu pułapkowego
-                             else NFA.epsilonClosure nfa targets
-                closure = trace ("  .. Symbol '" ++ show sym ++ "' -> Closure: " ++ show rawClosure) rawClosure
+                -- rawClosure = if Set.null targets 
+                --              then Set.empty -- specjalny zbiór dla stanu pułapkowego
+                --              else NFA.epsilonClosure nfa targets
+                -- closure = trace ("  .. Symbol '" ++ show sym ++ "' -> Closure: " ++ show rawClosure) rawClosure
+                closure = if Set.null targets 
+                          then Set.empty -- specjalny zbiór dla stanu pułapkowego
+                          else NFA.epsilonClosure nfa targets
                 
                 -- Znajdź lub dodaj nowy stan DFA
                 (newStateId, finalNextIdAfterSymbol, finalStateMapAfterSymbol, isNewState) =
@@ -93,7 +98,8 @@ nfaToDFA nfa = DFA.DFA
                   if Set.null closure -- Stan pułapkowy
                   then accAcceptingStates -- Zostaw bez zmian
                   else if isAccepting
-                      then trace ("    .. DFA state " ++ show newStateId ++ " (from NFA states: " ++ show closure ++ ") is ACCEPTED") (Set.insert newStateId accAcceptingStates)
+                      -- then trace ("    .. DFA state " ++ show newStateId ++ " (from NFA states: " ++ show closure ++ ") is ACCEPTED") (Set.insert newStateId accAcceptingStates)
+                      then Set.insert newStateId accAcceptingStates
                       else accAcceptingStates
                 
                 -- Dodaj nowy stan (closure) do kolejki do przetworzenia, jeśli jest nowy i niepusty
