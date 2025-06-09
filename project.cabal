@@ -8,12 +8,14 @@ executable project
   main-is:             Main.hs
   build-depends:       base >=4.7 && <5,
                        containers,
-                       project
+                       project,
+                       random
   default-language:    Haskell2010
-
+  
 library
   hs-source-dirs:      src
-  exposed-modules:     Auto.NFA, Auto.DFA, Core.NFAToDFA, Core.MinimizeDFA, Utils.GenerateRandomNFA
+  exposed-modules:     Auto.NFA, Auto.DFA, Core.NFAToDFA, Core.MinimizeDFA, 
+                       Utils.GenerateRandomNFA, Utils.ParseNFA
   build-depends:       base >=4.7 && <5,
                        containers,
                        random

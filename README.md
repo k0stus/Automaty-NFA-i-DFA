@@ -4,6 +4,7 @@
 
 ## Spis treści
 - [Projekt: Operacje na automatów skończonych (NFA → DFA, minimalizacja DFA)](#projekt-operacje-na-automatów-skończonych-nfa--dfa-minimalizacja-dfa)
+      - [Autorzy: Kanstantsin Sasnouski, Tomasz Stefaniak](#autorzy-kanstantsin-sasnouski-tomasz-stefaniak)
   - [Spis treści](#spis-treści)
   - [Wprowadzenie](#wprowadzenie)
   - [Definicje formalne](#definicje-formalne)
@@ -131,3 +132,13 @@ Uruchamianie testów:
 
 ```bash
 cabal test
+```
+
+Uruchamianie projektu:
+
+```bash
+cabal run project -- <option>
+```
+`Options:` 
+- random \<liczba stanów> \<alfabet>
+- file \<nazwa pliku>
