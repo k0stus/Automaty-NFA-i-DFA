@@ -59,3 +59,14 @@ test-suite gen-rand-nfa-test
                        project,
                        random
   default-language:    Haskell2010
+
+test-suite nfa-to-dfa-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests
+  main-is:             NFAToDFATest.hs
+  build-depends:       base >=4.7 && <5,
+                       hspec,
+                       containers,
+                       project,
+                       random
+  default-language:    Haskell2010

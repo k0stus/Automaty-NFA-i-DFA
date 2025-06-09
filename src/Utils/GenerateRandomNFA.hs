@@ -18,19 +18,23 @@ generateRandomNFA numStates alphabet = do
   let statesSet = Set.fromList [0 .. numStates - 1]
 
   -- Generowanie zwykłych przejść
-  transList <- sequence
+  transList <- fmap catMaybes . sequence $
     [ do
-        n <- randomRIO (1, 2)  -- losowa liczba przejść dla danego (state, symbol)
-        targets <- replicateM n (randomRIO (0, numStates - 1))
-        pure ((state, Just sym), Set.fromList targets)
+        include <- randomRIO (False, True) -- Czy dodać przejście (dla uwzględniania braku przejść)
+        if not include
+          then pure Nothing
+          else do
+            n <- randomRIO (1, 4) -- Liczba przejść dla danego stanu i symbolu
+            targets <- replicateM n (randomRIO (0, numStates - 1))
+            pure $ Just ((state, Just sym), Set.fromList targets)
     | state <- [0 .. numStates - 1]
     , sym <- Set.toList alphabet
     ]
 
-  -- Generowanie epsilon-przejść (do 3 na stan)
+  -- Generowanie epsilon-przejść
   epsList <- sequence
     [ do
-        k <- randomRIO (0, 3)
+        k <- randomRIO (0, 3) -- Liczba epsilon-przejść dla danego stanu
         if k == 0
           then pure Nothing
           else do
@@ -39,7 +43,8 @@ generateRandomNFA numStates alphabet = do
     | state <- [0 .. numStates - 1]
     ]
 
-  let transMap = Map.fromList (transList ++ catMaybes epsList)
+  let mergeTransitions = Map.fromListWith Set.union
+  let transMap = mergeTransitions (transList ++ catMaybes epsList)
 
   -- Stan początkowy
   let start = 0

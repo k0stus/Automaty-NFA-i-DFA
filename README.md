@@ -1,65 +1,133 @@
+# Projekt: Operacje na automatów skończonych (NFA → DFA, minimalizacja DFA)
 
 #### Autorzy: Kanstantsin Sasnouski, Tomasz Stefaniak
 
-## Automaty skończone - opis projektu
-Zaimplementowanie w języku Haskell niedeterministycznego automatu skończonego (NFA),</br>
-następnie stworzenie procedury przekształcenia go do DFA oraz algorytmu</br>
-minimalizującego liczbę stanów DFA. Zakładamy, że przestrzenią stanów jest skończony</br>
-podzbiór liczb naturalnych, natomiast alfabet wejściowy jest z góry określony i skończony.
+## Spis treści
+- [Projekt: Operacje na automatów skończonych (NFA → DFA, minimalizacja DFA)](#projekt-operacje-na-automatów-skończonych-nfa--dfa-minimalizacja-dfa)
+  - [Spis treści](#spis-treści)
+  - [Wprowadzenie](#wprowadzenie)
+  - [Definicje formalne](#definicje-formalne)
+    - [NFA](#nfa)
+    - [DFA](#dfa)
+  - [Determinizacja](#determinizacja)
+    - [Opis algorytmu (subset construction)](#opis-algorytmu-subset-construction)
+    - [Wzory](#wzory)
+  - [Minimalizacja DFA](#minimalizacja-dfa)
+    - [Opis algorytmu (refinement partitioning)](#opis-algorytmu-refinement-partitioning)
+    - [Wzory](#wzory-1)
+  - [Opis implementacji](#opis-implementacji)
+    - [Struktury danych](#struktury-danych)
+    - [Moduły](#moduły)
+  - [Testowanie](#testowanie)
 
-## Kompilacja i uruchamianie
-    - Kompilacja: 'scripts/build.sh' lub po prostu 'cabal build'</br>
-    - Uruchomienie głównego programu: 'scripts/execute.sh'</br>
-    - Uruchomienie wszystkich testów: 'scripts/test.sh'</br>
-    - Uruchomienie pojedyńczego testu: 'cabal repl {nazwa-testu}'</br>
+---
 
-## Opis funkcji konwertującej NFA do DFA
-NFA można przekonwertować do DFA (konwersja na zaimplementowanych typach)</br>
-przez tzw. subset construction. W zaimplementowanej funkcji:
-- Stanami DFA są epsilon-domknięte zbiory stanów NFA, osiągalne poprzez przejścia symbolami z alfabetu.
-- Stan początkowy DFA to epsilon-domknięcie stanu początkowego NFA.
-- Przejścia w DFA odpowiadają przejściom między zbiorami stanów NFA po danym symbolu, z dodatkowym epsilon-domknięciem.
-- Stany akceptujące DFA to te, których reprezentowane zbiory zawierają przynajmniej jeden</br> stan akceptujący NFA (nie muszą to być wszystkie stany, jak błędnie napisałeś).
+## Wprowadzenie
 
-Funkcja działa w sposób BFS:
-- Startuje od początkowego zbioru (domknięcia epsilonowe stanu początkowego).
-- Dla każdego zbioru z kolejki i każdego symbolu alfabetu oblicza, dokąd można przejść.
-- Jeśli nowy zbiór nie był jeszcze odwiedzony, przypisuje mu nowy indeks stanu DFA.
-- Dodaje odpowiednie przejścia i aktualizuje zbiór stanów akceptujących.
-- Kończy działanie, gdy kolejka zbiorów do odwiedzenia jest pusta.
+Celem projektu jest zaimplementowanie operacji na automatów skończonych, w szczególności:
+- przekształcenie automatu niedeterministycznego (NFA) w deterministyczny (DFA),
+- minimalizacja DFA w celu uzyskania automatu o najmniejszej liczbie stanów rozpoznającego ten sam język.
 
-Jej złożoność to Θ(liczba unikalnych osiągalnych zbiorów stanów w NFA)
+Implementacja jest napisana w języku Haskell, z wykorzystaniem bibliotek `containers` (dla `Map`, `Set`) i `hspec` (dla testów).
 
-## Opis funkcji minimalizującej DFA
+---
 
-## Szkic projektu rozwiązania
-- Zdefiniowanie typów danych dla stanów, alfabetu, funcji przejść oraz reprezentacji automatów
-- Implementacja parsera wczytującego reprezentację automatu z pliku tekstowego (lub z konsoli)</br> 
-wraz z walidacją danych wejściowych
-- Implementacja funkcji symulujących działanie automatów
-- Implementacja procedury determinizacji NFA -> DFA
-- Implementacja algorytmu minimalizacji automatu
-- Dodanie wyświetlania automatów w formacie tekstowym w kluczowych etapach działania
-- Testy
+## Definicje formalne
 
-## Wstępny podział prac
-#### Kanstantsin:
-- Implementacja NFA oraz testów do niego
-- Implementacja funkcji minimalizującej DFA oraz testów do niego
--
+### NFA
 
-#### Tomasz: 
-- Implementacja DFA oraz testów do niego
-- Implementacja funkcji konwertującej NFA na DFA
--
+Niedeterministyczny automat skończony to piątka:
 
-#### Wspólna praca (ciężkie z góry do podziału):
-- Implementacja algorytmu minimalizującego DFA
-- Dodanie wyświetlania automatów w istotnych momentach
-- 
+**NFA = (Q, Σ, δ, q₀, F)**, gdzie:
+- `Q` – skończony zbiór stanów,
+- `Σ` – alfabet wejściowy,
+- `δ: Q × (Σ ∪ {ε}) → P(Q)` – funkcja przejścia,
+- `q₀ ∈ Q` – stan początkowy,
+- `F ⊆ Q` – zbiór stanów akceptujących.
 
-## Wykorzystywane biblioteki
-- Prelude (Podstawowe typy i funkcje)
-- System.IO (Obsługa wejścia i wyjścia, np. by łatwo wczytywać różne automaty)
-- HLint (Zadbanie o czysty kod)
-- HSpec (Testy jednostkowe)
+Możliwe są:
+- wiele przejść dla danego symbolu,
+- ε-przejścia (przejścia bez czytania symbolu).
+
+---
+
+### DFA
+
+Deterministyczny automat skończony to piątka:
+
+**DFA = (Q, Σ, δ, q₀, F)**, gdzie:
+- `Q` – skończony zbiór stanów,
+- `Σ` – alfabet wejściowy,
+- `δ: Q × Σ → Q` – deterministyczna funkcja przejścia,
+- `q₀ ∈ Q` – stan początkowy,
+- `F ⊆ Q` – zbiór stanów akceptujących.
+
+Brak ε-przejść i brak wieloznaczności w przejściach.
+
+---
+
+## Determinizacja
+
+### Opis algorytmu (subset construction)
+
+Zbiór stanów DFA powstaje jako zbiór wszystkich możliwych zbiorów stanów NFA.
+
+1. Stan początkowy DFA to ε-domknięcie stanu początkowego NFA.
+2. Dla każdego zbioru `S ⊆ Q` i symbolu `a ∈ Σ`:
+   - Obliczamy zbiór `T` wszystkich stanów osiągalnych z `S` przez `a`, z uwzględnieniem ε-przejść.
+   - Dodajemy `T` jako nowy stan DFA (jeśli jeszcze nie istnieje).
+3. Stan DFA jest akceptujący jeśli zawiera co najmniej jeden stan akceptujący z NFA.
+
+### Wzory
+
+- **ε-closure(q)** = najmniejszy zbiór zawierający `q` oraz wszystkie stany osiągalne przez ε-przejścia.
+- **move(S, a)** = zbiór stanów osiągalnych z `S` przez symbol `a`.
+
+---
+
+## Minimalizacja DFA
+
+### Opis algorytmu (refinement partitioning)
+
+Celem jest połączenie stanów, które są nierozróżnialne.
+
+1. Dzielimy stany na dwie klasy: akceptujące i nieakceptujące.
+2. Dla każdej klasy sprawdzamy, czy stany mają takie same przejścia dla każdego symbolu.
+3. Jeśli nie – dzielimy klasę na mniejsze podklasy.
+4. Proces powtarzamy aż do uzyskania stabilnego podziału.
+
+### Wzory
+
+Dwa stany `p, q ∈ Q` są nierozróżnialne, jeśli:
+- Dla każdego słowa `w ∈ Σ*`, `δ(p, w) ∈ F ⇔ δ(q, w) ∈ F`.
+
+---
+
+## Opis implementacji
+
+### Struktury danych
+
+- **`State = Int`**, **`Symbol = Char`**
+- **NFA** i **DFA** korzystają z `Data.Map` (przejścia) i `Data.Set` (stany)
+
+### Moduły
+
+- `Auto.NFA` – definicja i obsługa NFA
+- `Auto.DFA` – definicja i obsługa DFA
+- `Core.NFAtoDFA` – funkcja `nfaToDFA :: NFA -> DFA`
+- `Core.MinimizeDFA` – funkcja `minimizeDFA :: DFA -> DFA`
+
+---
+
+## Testowanie
+
+Testy znajdują się w katalogu `tests/`, zorganizowane jako:
+
+- `NFATest.hs` – testy akceptacji słów przez NFA
+- `DFATest.hs` – testy działania deterministycznego automatu
+- `minTest.hs` – test poprawności minimalizacji DFA
+
+Uruchamianie testów:
+
+```bash
+cabal test

@@ -49,7 +49,7 @@ nfaToDFA nfa = DFA.DFA
             let 
                 -- Oblicz stany osiągalne przez symbol dla currSet
                 targets = Set.unions
-                  [ fromMaybe Set.empty (Map.lookup (s, Just sym) (NFA.transition nfa))
+                  [ fromMaybe Set.empty (Map.lookup (s, Just sym) (NFA.transition nfa)) -- fromMaybe na wypadek braku przejścia
                   | s <- Set.toList currentSet ]
                 
                 -- Oblicz domknięcie epsilon, czyli stany osiągalne (kandydat do zostania nowym stanem DFA)
@@ -75,8 +75,8 @@ nfaToDFA nfa = DFA.DFA
           symbolResults = map processSymbol (Set.toList (NFA.alphabet nfa))
           
           -- Zbieramy wyniki
-          newStates = [s | (s, _, _, _, _, _) <- symbolResults, not (Map.member s stateMap)]
-          newStateMap = foldl (\m (_, _, _, _, _, nm) -> nm) stateMap symbolResults
+          newStates = [s | (s, _, _, _, _, _) <- symbolResults, not (Map.member s newStateMap)]
+          newStateMap = foldl (\m (_, _, _, _, _, nm) -> Map.union m nm) stateMap symbolResults
           newTrans = foldl (\t (_, _, nt, _, _, _) -> nt) trans symbolResults
           newAccept = foldl (\a (_, _, _, na, _, _) -> na) accept symbolResults
           maxNextId = maximum [ni | (_, _, _, _, ni, _) <- symbolResults]
