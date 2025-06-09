@@ -8,6 +8,7 @@ import qualified Data.Set as Set
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Maybe (fromMaybe)
+
 import Auto.DFA
 import Auto.NFA
 
@@ -16,7 +17,7 @@ import Auto.NFA
 nfaToDFA :: Auto.NFA -> Auto.DFA
 nfaToDFA nfa = Auto.DFA
   { states = dfaStates
-  , alphabet = alphabet nfa -- Po prostu kopiujemy alfabet z NFA
+  , alphabet = alphabet nfa -- Kopia alfabetu z NFA
   , transition = dfaTrans
   , startState = initialState
   , acceptStates = accepting
@@ -33,37 +34,38 @@ nfaToDFA nfa = Auto.DFA
 
     -- Główna funkcja budująca DFA (BFS)
     buildDFA :: Auto.NFA 
-             -> [Set State]          -- Kolejka stanów do przetworzenia
-             -> Map (Set State) Int  -- Mapowanie zbiorów na indeksy DFA
-             -> Transition           -- Akumulowane przejścia DFA
-             -> Set State            -- Stany akceptujące DFA
-             -> Int                  -- Następny wolny indeks
-             -> (Set State, Transition, Set State)
-    buildDFA _ [] _ trans accept _ = 
-      (Set.fromList (Map.elems stateMapping), trans, accept)
+            -> [Set State] -- Kolejka stanów do przetworzenia
+            -> Map (Set State) Int -- Mapowanie zbiorów na indeksy DFA
+            -> Transition -- Akumulowane przejścia DFA
+            -> Set State -- Stany akceptujące DFA
+            -> Int -- Następny wolny indeks
+            -> (Set State, Transition, Set State)
+    buildDFA _ [] _ trans accept _ = (Set.fromList (Map.elems stateMapping), trans, accept)
     
-    buildDFA nfa (currentSet:rest) stateMap trans accept nextId =
-      let -- Dla każdego symbolu w alfabecie...
-          processSymbol sym =
-            -- Oblicz stany osiągalne przez symbol
-            let targets = Set.unions
+    buildDFA nfa (currentSet:rest) stateMap trans accept nextId = 
+      let 
+          -- Funkcja przetwarzająca symbol i aktualizująca dostępne stany
+          processSymbol sym = 
+            let 
+                -- Oblicz stany osiągalne przez symbol dla currSet
+                targets = Set.unions
                   [ fromMaybe Set.empty (Map.lookup (s, Just sym) (transition nfa))
                   | s <- Set.toList currentSet ]
                 
-                -- Oblicz epsilon-domknięcie
+                -- Oblicz domknięcie epsilon, czyli stany osiągalne (kandydat do zostania nowym stanem DFA)
                 closure = epsilonClosure nfa targets
                 
                 -- Znajdź lub dodaj nowy stan DFA
                 (newStateId, newNextId, newStateMap) = 
                   case Map.lookup closure stateMap of
                     Just idx -> (idx, nextId, stateMap) -- Stan już istnieje
-                    Nothing -> (nextId, nextId + 1, Map.insert closure nextId stateMap)
+                    Nothing -> (nextId, nextId + 1, Map.insert closure nextId stateMap) -- Stan do tej pory nie istaniał
                 
-                -- Dodaj przejście do DFA
-                currentStateId = stateMap Map.! currentSet
+                -- Dodaj przejście do DFA z obecnego stanu do nowego stanu (pod wpływem symbolu sym)
+                currentStateId = stateMap Map.! currentSet -- Wiemy że currentSet jest w stateMap
                 newTrans = Map.insert (currentStateId, sym) newStateId trans
                 
-                -- Sprawdź czy stan akceptujący
+                -- Sprawdź czy nowy stan jest akceptujący, jeśli tak, dodaj go do zbioru akceptujących stanów w DFA
                 isAccepting = not $ Set.null $ Set.intersection closure (acceptStates nfa)
                 newAccept = if isAccepting then Set.insert newStateId accept else accept
                 
@@ -73,8 +75,7 @@ nfaToDFA nfa = Auto.DFA
           symbolResults = map processSymbol (Set.toList (alphabet nfa))
           
           -- Zbieramy wyniki
-          newStates = [s | (s, _, _, _, _, _) <- symbolResults, 
-                          not (Map.member s stateMap)]
+          newStates = [s | (s, _, _, _, _, _) <- symbolResults, not (Map.member s stateMap)]
           newStateMap = foldl (\m (_, _, _, _, _, nm) -> nm) stateMap symbolResults
           newTrans = foldl (\t (_, _, nt, _, _, _) -> nt) trans symbolResults
           newAccept = foldl (\a (_, _, _, na, _, _) -> na) accept symbolResults

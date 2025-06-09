@@ -8,10 +8,27 @@ minimalizującego liczbę stanów DFA. Zakładamy, że przestrzenią stanów jes
 podzbiór liczb naturalnych, natomiast alfabet wejściowy jest z góry określony i skończony.
 
 ## Kompilacja i uruchamianie
-* Kompilacja: 'scripts/build.sh' lub po prostu 'cabal build' </br>
-* Uruchomienie głównego programu: 'scripts/execute.sh'</br>
-* Uruchomienie wszystkich testów: 'scripts/test.s'h</br>
-* Uruchomienie pojedyńczego testu: 'cabal repl {nazwa-testu}'</br>
+    - Kompilacja: 'scripts/build.sh' lub po prostu 'cabal build'</br>
+    - Uruchomienie głównego programu: 'scripts/execute.sh'</br>
+    - Uruchomienie wszystkich testów: 'scripts/test.sh'</br>
+    - Uruchomienie pojedyńczego testu: 'cabal repl {nazwa-testu}'</br>
+
+## Opis funkcji konwertującej NFA do DFA
+NFA można przekonwertować do DFA (konwersja na zaimplementowanych typach)</br>
+przez tzw. subset construction. W zaimplementowanej funkcji:
+- Stanami DFA są epsilon-domknięte zbiory stanów NFA, osiągalne poprzez przejścia symbolami z alfabetu.
+- Stan początkowy DFA to epsilon-domknięcie stanu początkowego NFA.
+- Przejścia w DFA odpowiadają przejściom między zbiorami stanów NFA po danym symbolu, z dodatkowym epsilon-domknięciem.
+- Stany akceptujące DFA to te, których reprezentowane zbiory zawierają przynajmniej jeden</br> stan akceptujący NFA (nie muszą to być wszystkie stany, jak błędnie napisałeś).
+
+Funkcja działa w sposób BFS:
+- Startuje od początkowego zbioru (domknięcia epsilonowe stanu początkowego).
+- Dla każdego zbioru z kolejki i każdego symbolu alfabetu oblicza, dokąd można przejść.
+- Jeśli nowy zbiór nie był jeszcze odwiedzony, przypisuje mu nowy indeks stanu DFA.
+- Dodaje odpowiednie przejścia i aktualizuje zbiór stanów akceptujących.
+- Kończy działanie, gdy kolejka zbiorów do odwiedzenia jest pusta.
+
+## Opis funkcji minimalizującej DFA
 
 ## Szkic projektu rozwiązania
 - Zdefiniowanie typów danych dla stanów, alfabetu, funcji przejść oraz reprezentacji automatów
