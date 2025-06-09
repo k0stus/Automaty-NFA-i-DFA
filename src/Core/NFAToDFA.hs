@@ -1,7 +1,7 @@
--- file   = nfaToDFA.hs
+-- file   = NFAToDFA.hs
 -- author = Tomasz Stefaniak
 
-module Core.NFAtoDFA (nfaToDFA) where
+module Core.NFAToDFA (nfaToDFA) where
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -9,22 +9,22 @@ import Data.Map (Map)
 import Data.Set (Set)
 import Data.Maybe (fromMaybe)
 
-import Auto.DFA
-import Auto.NFA
-
+import qualified Auto.DFA as DFA
+import qualified Auto.NFA as NFA
+import Auto.NFA (State, Symbol)
 
 -- Konwertuje NFA na równoważny DFA
-nfaToDFA :: Auto.NFA -> Auto.DFA
-nfaToDFA nfa = Auto.DFA
-  { states = dfaStates
-  , alphabet = alphabet nfa -- Kopia alfabetu z NFA
-  , transition = dfaTrans
-  , startState = initialState
-  , acceptStates = accepting
+nfaToDFA :: NFA.NFA -> DFA.DFA
+nfaToDFA nfa = DFA.DFA
+  { DFA.states = dfaStates
+  , DFA.alphabet = NFA.alphabet nfa
+  , DFA.transition = dfaTrans
+  , DFA.startState = initialState
+  , DFA.acceptStates = accepting
   }
   where
     -- Obliczamy początkowy stan DFA jako epsilon-domknięcie stanu startowego NFA
-    initClosure = epsilonClosure nfa (Set.singleton (startState nfa))
+    initClosure = NFA.epsilonClosure nfa (Set.singleton (NFA.startState nfa))
     
     -- Inicjalizujemy struktury danych
     initialState = 0 -- Nadajemy pierwszy indeks dla stanu startowego DFA
@@ -33,13 +33,13 @@ nfaToDFA nfa = Auto.DFA
       buildDFA nfa [initClosure] stateMapping Map.empty Set.empty 1
 
     -- Główna funkcja budująca DFA (BFS)
-    buildDFA :: Auto.NFA 
+    buildDFA :: NFA.NFA 
             -> [Set State] -- Kolejka stanów do przetworzenia
             -> Map (Set State) Int -- Mapowanie zbiorów na indeksy DFA
-            -> Transition -- Akumulowane przejścia DFA
+            -> DFA.Transition -- Akumulowane przejścia DFA
             -> Set State -- Stany akceptujące DFA
             -> Int -- Następny wolny indeks
-            -> (Set State, Transition, Set State)
+            -> (Set State, DFA.Transition, Set State)
     buildDFA _ [] _ trans accept _ = (Set.fromList (Map.elems stateMapping), trans, accept)
     
     buildDFA nfa (currentSet:rest) stateMap trans accept nextId = 
@@ -49,11 +49,11 @@ nfaToDFA nfa = Auto.DFA
             let 
                 -- Oblicz stany osiągalne przez symbol dla currSet
                 targets = Set.unions
-                  [ fromMaybe Set.empty (Map.lookup (s, Just sym) (transition nfa))
+                  [ fromMaybe Set.empty (Map.lookup (s, Just sym) (NFA.transition nfa))
                   | s <- Set.toList currentSet ]
                 
                 -- Oblicz domknięcie epsilon, czyli stany osiągalne (kandydat do zostania nowym stanem DFA)
-                closure = epsilonClosure nfa targets
+                closure = NFA.epsilonClosure nfa targets
                 
                 -- Znajdź lub dodaj nowy stan DFA
                 (newStateId, newNextId, newStateMap) = 
@@ -66,13 +66,13 @@ nfaToDFA nfa = Auto.DFA
                 newTrans = Map.insert (currentStateId, sym) newStateId trans
                 
                 -- Sprawdź czy nowy stan jest akceptujący, jeśli tak, dodaj go do zbioru akceptujących stanów w DFA
-                isAccepting = not $ Set.null $ Set.intersection closure (acceptStates nfa)
+                isAccepting = not $ Set.null $ Set.intersection closure (NFA.acceptStates nfa)
                 newAccept = if isAccepting then Set.insert newStateId accept else accept
                 
             in (closure, newStateId, newTrans, newAccept, newNextId, newStateMap)
           
           -- Przetwarzamy wszystkie symbole alfabetu
-          symbolResults = map processSymbol (Set.toList (alphabet nfa))
+          symbolResults = map processSymbol (Set.toList (NFA.alphabet nfa))
           
           -- Zbieramy wyniki
           newStates = [s | (s, _, _, _, _, _) <- symbolResults, not (Map.member s stateMap)]

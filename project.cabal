@@ -1,4 +1,3 @@
-
 cabal-version:       >=1.10
 name:                project
 version:             0.1.0.0
@@ -14,9 +13,10 @@ executable project
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Auto.NFA, Auto.DFA, Core.MinimizeDFA
+  exposed-modules:     Auto.NFA, Auto.DFA, Core.NFAToDFA, Core.MinimizeDFA, Utils.GenerateRandomNFA
   build-depends:       base >=4.7 && <5,
-                       containers
+                       containers,
+                       random
   default-language:    Haskell2010
 
 test-suite nfa-test
@@ -47,4 +47,15 @@ test-suite min-test
                        hspec,
                        containers,
                        project
+  default-language:    Haskell2010
+
+test-suite gen-rand-nfa-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests
+  main-is:             GenerateRandomNFATest.hs
+  build-depends:       base >=4.7 && <5,
+                       hspec,
+                       containers,
+                       project,
+                       random
   default-language:    Haskell2010

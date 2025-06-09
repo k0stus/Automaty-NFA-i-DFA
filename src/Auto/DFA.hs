@@ -2,9 +2,7 @@
 -- author = Tomasz Stefaniak
 
 module Auto.DFA
-  ( State
-  , Symbol
-  , DFA(..)
+  ( DFA(..)
   , Transition
   , emptyDFA
   , addTransition
@@ -17,9 +15,8 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import Data.Map (Map)
 
+import Auto.NFA (State, Symbol) -- Importujemy State i Symbol z NFA, aby uniknąć duplikacji kodu
 
-type State = Int
-type Symbol = Char
 -- DFA transitions: z jednego stanu i konretnego symbolu przechodzimy do dokładnie jednego stanu
 type Transition = Map (State, Symbol) State
 
@@ -30,7 +27,6 @@ data DFA = DFA
   , startState   :: State
   , acceptStates :: Set State
   } deriving (Show, Eq)
-
 
 -- Tworzy pusty DFA z jednym stanem startowym
 emptyDFA :: State -> DFA

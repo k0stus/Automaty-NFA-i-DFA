@@ -11,6 +11,7 @@ import Data.List (find)
 import Data.Maybe (fromJust)
 
 import Auto.DFA
+import Auto.NFA (State, Symbol)
 
 -- Funkcja minimalizacji deterministycznego automatu skończonego
 minimizeDFA :: DFA -> DFA

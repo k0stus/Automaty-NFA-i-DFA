@@ -19,7 +19,6 @@ import Data.Set (Set)
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 
-
 type State = Int
 type Symbol = Char
 -- NFA transitions: z jednego stanu i opcjonalnego symbolu przechodzimy do zbioru stanów
@@ -32,7 +31,6 @@ data NFA = NFA
   , startState   :: State
   , acceptStates :: Set State
   } deriving (Show, Eq)
-
 
 -- Tworzy pusty NFA z jednym stanem startowym
 emptyNFA :: State -> NFA

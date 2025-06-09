@@ -28,6 +28,8 @@ Funkcja działa w sposób BFS:
 - Dodaje odpowiednie przejścia i aktualizuje zbiór stanów akceptujących.
 - Kończy działanie, gdy kolejka zbiorów do odwiedzenia jest pusta.
 
+Jej złożoność to Θ(liczba unikalnych osiągalnych zbiorów stanów w NFA)
+
 ## Opis funkcji minimalizującej DFA
 
 ## Szkic projektu rozwiązania
@@ -42,19 +44,19 @@ wraz z walidacją danych wejściowych
 
 ## Wstępny podział prac
 #### Kanstantsin:
-- Definicje typów stanów, alfabetu, funkcji przejścia
-- Implementacja wyświetlania automatów NFA i DFA
-- Implementacja funkcji determinizacji
+- Implementacja NFA oraz testów do niego
+- Implementacja funkcji minimalizującej DFA oraz testów do niego
+-
 
 #### Tomasz: 
-- Implementacja reprezentacji automatu NFA oraz DFA
-- Implementacja wczytywania automatu NFA z pliku
-- Implementacja funkcji symulujących działanie automatów
+- Implementacja DFA oraz testów do niego
+- Implementacja funkcji konwertującej NFA na DFA
+-
 
 #### Wspólna praca (ciężkie z góry do podziału):
 - Implementacja algorytmu minimalizującego DFA
 - Dodanie wyświetlania automatów w istotnych momentach
-- Napisanie testów
+- 
 
 ## Wykorzystywane biblioteki
 - Prelude (Podstawowe typy i funkcje)

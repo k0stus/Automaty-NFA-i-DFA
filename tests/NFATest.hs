@@ -7,7 +7,6 @@ import Test.Hspec
 import qualified Data.Set as Set
 import Auto.NFA
 
-
 exampleNFA :: NFA
 exampleNFA =
   let nfa0 = emptyNFA 0
