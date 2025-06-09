@@ -16,7 +16,7 @@ import Auto.NFA (State, Symbol)
 -- Konwertuje NFA na równoważny DFA
 nfaToDFA :: NFA.NFA -> DFA.DFA
 nfaToDFA nfa = DFA.DFA
-  { DFA.states = dfaStates
+  { DFA.states = Set.insert trapStateId dfaStates
   , DFA.alphabet = NFA.alphabet nfa
   , DFA.transition = dfaTrans
   , DFA.startState = initialState
@@ -31,8 +31,14 @@ nfaToDFA nfa = DFA.DFA
     -- Inicjalizujemy struktury danych
     initialState = 0 -- Nadajemy pierwszy indeks dla stanu startowego DFA
     stateMapping = Map.fromList [(initClosure, initialState), (Set.empty, trapStateId)] -- Mapowanie zbiorów do indeksów
+    
+    -- Sprawdzamy, czy stan początkowy jest akceptujący 
+    initialAccept = if Set.null (Set.intersection initClosure (NFA.acceptStates nfa))
+                    then Set.empty
+                    else Set.singleton initialState
+    
     (dfaStates, dfaTrans, accepting) = 
-      buildDFA nfa [initClosure] stateMapping Map.empty Set.empty 1
+      buildDFA nfa [initClosure] stateMapping Map.empty initialAccept 1
 
     -- Główna funkcja budująca DFA (BFS)
     buildDFA :: NFA.NFA 
@@ -46,12 +52,16 @@ nfaToDFA nfa = DFA.DFA
     
     buildDFA nfa (currentSet:rest) stateMap trans accept nextId = 
       let 
-          -- Funkcja przetwarzająca symbol i aktualizująca dostępne stany
-          processSymbol sym = 
+          currentStateId = stateMap Map.! currentSet
+          alphabetList = Set.toList (NFA.alphabet nfa)
+
+          -- Fold over symbols, accumulating new transitions, new states to explore (as NFA state sets),
+          -- updated stateMap, the next available ID, and updated accepting states set.
+          foldFunction (accTrans, accNewStatesToExplore, accAcceptingStates, accStateMap, accNextId) sym =
             let 
                 -- Oblicz stany osiągalne przez symbol dla currSet
                 targets = Set.unions
-                  [ fromMaybe Set.empty (Map.lookup (s, Just sym) (NFA.transition nfa)) -- fromMaybe na wypadek braku przejścia
+                  [ fromMaybe Set.empty (Map.lookup (s, Just sym) (NFA.transition nfa))
                   | s <- Set.toList currentSet ]
                 
                 -- Oblicz domknięcie epsilon, czyli stany osiągalne (kandydat do zostania nowym stanem DFA)
@@ -60,33 +70,40 @@ nfaToDFA nfa = DFA.DFA
                           else NFA.epsilonClosure nfa targets
                 
                 -- Znajdź lub dodaj nowy stan DFA
-                (newStateId, newNextId, newStateMap) =
+                (newStateId, finalNextIdAfterSymbol, finalStateMapAfterSymbol, isNewState) =
                   if Set.null closure
-                  then (trapStateId, nextId, stateMap)
-                  else case Map.lookup closure stateMap of
-                    Just idx -> (idx, nextId, stateMap) -- Stan już istnieje
-                    Nothing  -> (nextId, nextId + 1, Map.insert closure nextId stateMap) -- Stan do tej pory nie istaniał
+                  then (trapStateId, accNextId, accStateMap, False) -- Stan pułapkowy
+                  else case Map.lookup closure accStateMap of
+                    Just idx -> (idx, accNextId, accStateMap, False) -- Stan już istnieje
+                    Nothing  -> (accNextId, accNextId + 1, Map.insert closure accNextId accStateMap, True) -- Stan do tej pory nie istniał
 
                 -- Dodaj przejście do DFA z obecnego stanu do nowego stanu (pod wpływem symbolu sym)
-                currentStateId = stateMap Map.! currentSet -- Wiemy że currentSet jest w stateMap
-                newTrans = Map.insert (currentStateId, sym) newStateId trans
+                updatedTrans = Map.insert (currentStateId, sym) newStateId accTrans
                 
-                -- Sprawdź czy nowy stan jest akceptujący, jeśli tak, dodaj go do zbioru akceptujących stanów w DFA
-                isAccepting = not (Set.null closure) && not (Set.null (Set.intersection closure (NFA.acceptStates nfa)))
-                newAccept = if isAccepting 
-                            then Set.insert newStateId accept 
-                            else accept
+                -- Sprawdź czy nowy/docelowy stan DFA (reprezentowany przez 'closure') jest akceptujący
+                isTargetDFAStateAccepting = not (Set.null closure) && 
+                                     not (Set.null (Set.intersection closure (NFA.acceptStates nfa)))
                 
-            in (closure, newStateId, newTrans, newAccept, newNextId, newStateMap)
+                updatedAcceptingStates = if isTargetDFAStateAccepting 
+                                         then Set.insert newStateId accAcceptingStates 
+                                         else accAcceptingStates
+                
+                -- Dodaj nowy stan (closure) do kolejki do przetworzenia, jeśli jest nowy i niepusty
+                updatedNewStatesToExplore = if isNewState && not (Set.null closure) 
+                                            then closure : accNewStatesToExplore 
+                                            else accNewStatesToExplore
+                
+            in (updatedTrans, updatedNewStatesToExplore, updatedAcceptingStates, finalStateMapAfterSymbol, finalNextIdAfterSymbol)
           
-          -- Przetwarzamy wszystkie symbole alfabetu
-          symbolResults = map processSymbol (Set.toList (NFA.alphabet nfa))
+          -- Inicjalizujemy wartości dla folda.
+          -- Przejścia (`trans`), stany akceptujące (`accept`), `stateMap` i `nextId` są przekazywane z poprzednich kroków budowy DFA.
+          -- `newStatesToExploreForCurrentSet` jest pusta na początku przetwarzania symboli dla `currentSet`.
+          initialFoldAccumulator = (trans, [], accept, stateMap, nextId)
           
-          -- Zbieramy wyniki
-          newStates = [s | (s, _, _, _, _, _) <- symbolResults, not (Map.member s stateMap), not (Set.null s)]
-          newStateMap = foldl (\m (_, _, _, _, _, nm) -> Map.union m nm) stateMap symbolResults
-          newTrans = foldl (\t (_, _, nt, _, _, _) -> Map.union t nt) trans symbolResults
-          newAccept = accept <> foldMap (\(_, _, _, na, _, _) -> na) symbolResults
-          maxNextId = maximum [ni | (_, _, _, _, ni, _) <- symbolResults]
+          (processedTrans, newStatesForQueueReversed, processedAcceptingStates, processedStateMap, processedNextId) =
+             foldl foldFunction initialFoldAccumulator alphabetList
           
-      in buildDFA nfa (rest ++ newStates) newStateMap newTrans newAccept maxNextId
+          -- Odwracamy listę nowych stanów, aby zachować kolejność odkrywania (opcjonalne, ale typowe dla BFS)
+          newStatesForQueue = reverse newStatesForQueueReversed
+          
+      in buildDFA nfa (rest ++ newStatesForQueue) processedStateMap processedTrans processedAcceptingStates processedNextId

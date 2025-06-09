@@ -24,7 +24,7 @@ generateRandomNFA numStates alphabet = do
         if not include
           then pure Nothing
           else do
-            n <- randomRIO (1, 4) -- Liczba przejść dla danego stanu i symbolu
+            n <- randomRIO (1, 3) -- Liczba przejść dla danego stanu i symbolu
             targets <- replicateM n (randomRIO (0, numStates - 1))
             pure $ Just ((state, Just sym), Set.fromList targets)
     | state <- [0 .. numStates - 1]
@@ -34,7 +34,7 @@ generateRandomNFA numStates alphabet = do
   -- Generowanie epsilon-przejść
   epsList <- sequence
     [ do
-        k <- randomRIO (0, 3) -- Liczba epsilon-przejść dla danego stanu
+        k <- randomRIO (0, 2) -- Liczba epsilon-przejść dla danego stanu
         if k == 0
           then pure Nothing
           else do
