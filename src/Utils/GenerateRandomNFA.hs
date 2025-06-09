@@ -51,7 +51,7 @@ generateRandomNFA numStates alphabet = do
 
   -- Stany akceptujące
   let allStates = [0 .. numStates - 1]
-  numAccept <- randomRIO (1, max 1 (numStates `div` 5)) -- Co najmniej jeden stan akceptujący
+  numAccept <- randomRIO (1, max 2 (numStates `div` 5)) -- Co najmniej x stanów akceptujących
   acceptStatesList <- replicateM numAccept (randomRIO (0, numStates - 1))
   let acceptSet = Set.fromList acceptStatesList
 

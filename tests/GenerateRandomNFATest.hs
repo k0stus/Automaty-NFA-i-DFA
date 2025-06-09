@@ -13,5 +13,5 @@ main :: IO ()
 main = hspec $ do
     describe "generateRandomNFA" $ do
         it "generates a valid NFA " $ do
-            nfa <- generateRandomNFA 10 (Set.fromList ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'])
+            nfa <- generateRandomNFA 15 (Set.fromList ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'])
             putStrLn (prettyPrintNFA nfa)

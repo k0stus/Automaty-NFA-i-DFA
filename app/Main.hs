@@ -1,5 +1,5 @@
 -- file   = Main.hs
--- author = Tomasz Stefaniak
+-- author = kansas
 
 module Main where
 
