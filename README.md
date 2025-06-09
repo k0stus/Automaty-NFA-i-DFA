@@ -1,4 +1,4 @@
-# Projekt: Operacje na automatów skończonych (NFA → DFA, minimalizacja DFA)
+# Projekt: Operacje na automatach skończonych (NFA → DFA, minimalizacja DFA)
 
 #### Autorzy: Kanstantsin Sasnouski, Tomasz Stefaniak
 
@@ -25,7 +25,7 @@
 
 ## Wprowadzenie
 
-Celem projektu jest zaimplementowanie operacji na automatów skończonych, w szczególności:
+Celem projektu jest zaimplementowanie operacji na automatach skończonych, w szczególności:
 - przekształcenie automatu niedeterministycznego (NFA) w deterministyczny (DFA),
 - minimalizacja DFA w celu uzyskania automatu o najmniejszej liczbie stanów rozpoznającego ten sam język.
 
@@ -50,6 +50,22 @@ Możliwe są:
 - wiele przejść dla danego symbolu,
 - ε-przejścia (przejścia bez czytania symbolu).
 
+#### Implementacja
+
+```hs
+data NFA = NFA
+  { states       :: Set State
+  , alphabet     :: Set Symbol
+  , transition   :: Transition
+  , startState   :: State
+  , acceptStates :: Set State
+  }
+```
+gdzie 
+- `type State = Int`
+- `type Symbol = Char`
+- `type Transition = Map (State, Symbol) State`
+
 ---
 
 ### DFA
@@ -64,6 +80,16 @@ Deterministyczny automat skończony to piątka:
 - `F ⊆ Q` – zbiór stanów akceptujących.
 
 Brak ε-przejść i brak wieloznaczności w przejściach.
+
+```hs
+data DFA = DFA
+  { states       :: Set State
+  , alphabet     :: Set Symbol
+  , transition   :: Transition
+  , startState   :: State
+  , acceptStates :: Set State
+  }
+```
 
 ---
 
@@ -105,11 +131,6 @@ Dwa stany `p, q ∈ Q` są nierozróżnialne, jeśli:
 ---
 
 ## Opis implementacji
-
-### Struktury danych
-
-- **`State = Int`**, **`Symbol = Char`**
-- **NFA** i **DFA** korzystają z `Data.Map` (przejścia) i `Data.Set` (stany)
 
 ### Moduły
 
