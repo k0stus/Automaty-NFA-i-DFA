@@ -13,14 +13,14 @@ import Data.Maybe (fromJust)
 import Auto.DFA
 import Auto.NFA (State, Symbol)
 
--- Funkcja minimalizacji deterministycznego automatu skończonego
+-- Funkcja minimalizacji deterministycznego automatu skończonego (DFA)
 minimizeDFA :: DFA -> DFA
 minimizeDFA dfa =
   let
-    -- Inicjalny podział: stany akceptujące i nieakceptujące
+    -- 1. Inicjalny podział: stany akceptujące i nieakceptujące
     initialPartition = [acceptStates dfa, Set.difference (states dfa) (acceptStates dfa)]
 
-    -- Iteracyjne dzielenie grup, aż do ustabilizowania
+    -- 2. Rekurencyjnie rafinujemy grupy, aż podział się ustabilizuje
     refine :: [Set State] -> [Set State]
     refine groups =
       let groups' = refineOnce groups
@@ -29,39 +29,46 @@ minimizeDFA dfa =
     refineOnce :: [Set State] -> [Set State]
     refineOnce groups = concatMap (splitGroup groups) groups
 
-    -- Dzieli grupę na podgrupy na podstawie przejść
+    -- 3. Dzieli jedną grupę stanów na podgrupy, zgodnie z ich zachowaniem dla każdego symbolu
     splitGroup :: [Set State] -> Set State -> [Set State]
     splitGroup groups group =
-      let classify state = [ findGroup (move state a) groups | a <- Set.toList (alphabet dfa) ]
+      let classify state =
+            [ if t == -1 then Nothing else Just (findGroup t groups)
+            | a <- Set.toList (alphabet dfa)
+            , let t = move state a
+            ]
           buckets = Map.fromListWith Set.union
                       [ (classify s, Set.singleton s) | s <- Set.toList group ]
       in Map.elems buckets
 
-    -- Zwraca grupę, w której znajduje się stan
+    -- 4. Znajduje grupę, do której należy dany stan
     findGroup :: State -> [Set State] -> Set State
     findGroup s = fromJust . find (Set.member s)
 
-    -- Funkcja przejścia
+    -- 5. Funkcja przejścia: -1 oznacza "dead state"
     move :: State -> Symbol -> State
     move s a = Map.findWithDefault (-1) (s, a) (transition dfa)
 
-    -- Minimalne stany = numerujemy grupy od 0
+    -- 6. Finalne grupy po stabilizacji podziału
     groups = refine initialPartition
+
+    -- 7. Przypisujemy każdej grupie unikalny numer (nowy stan)
     stateMap :: Map (Set State) State
     stateMap = Map.fromList $ zip groups [0..]
 
-    -- Budujemy nowe przejścia
+    -- 8. Budujemy nowe przejścia tylko dla tych, które nie prowadzą do dead state (-1)
     newTransitions =
-      [ ((stateMap Map.! group, a), stateMap Map.! findGroup (move (Set.findMin group) a) groups)
+      [ ((stateMap Map.! group, a), stateMap Map.! findGroup t groups)
       | group <- groups
       , a <- Set.toList (alphabet dfa)
-      , move (Set.findMin group) a /= -1
+      , let t = move (Set.findMin group) a
+      , t /= -1
       ]
 
-    -- Identyfikator nowego stanu startowego
+    -- 9. Nowy stan początkowy
     newStart = stateMap Map.! findGroup (startState dfa) groups
 
-    -- Nowe stany akceptujące
+    -- 10. Nowe stany akceptujące — jeśli jakakolwiek część grupy była akceptująca
     newAccepts = Set.fromList
       [ sid
       | g <- groups

@@ -13,6 +13,8 @@ import Utils.ParseNFA (readNFAFromFile)
 import qualified Data.Set as Set
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
+import qualified Auto.DFA as DFA
+import qualified Data.Map as Map
 
 main :: IO ()
 main = do
@@ -20,7 +22,32 @@ main = do
   case args of
     ["random", statesStr, alphabetStr] -> runRandom statesStr alphabetStr
     ["file", filePath] -> runFromFile filePath
+    ["debugMin"] -> runMinRedDFA
     _ -> printUsage
+
+redundantDFA :: DFA.DFA
+redundantDFA = DFA.DFA
+  { DFA.states = Set.fromList [1, 2, 3, 4, 5]
+  , DFA.alphabet = Set.fromList ['a', 'b']
+  , DFA.transition = 
+      [ ((1, 'a'), 2)
+      , ((1, 'b'), 3)
+      , ((2, 'b'), 4)
+      , ((3, 'b'), 5)
+      , ((3, 'a'), 4)
+      , ((4, 'b'), 5)
+      , ((5, 'a'), 2)
+      , ((2, 'b'), 4)
+      ] |> Map.fromList
+  , DFA.startState = 1
+  , DFA.acceptStates = Set.fromList [4, 5]
+  }
+
+(|>) :: a -> (a -> b) -> b
+x |> f = f x
+
+runMinRedDFA :: IO()
+runMinRedDFA = putStrLn $ prettyPrintDFA $ minimizeDFA redundantDFA
 
 -- Tryb losowego NFA
 runRandom :: String -> String -> IO ()
