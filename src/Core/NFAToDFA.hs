@@ -40,7 +40,7 @@ nfaToDFA nfa = DFA.DFA
             -> Set State -- Stany akceptujące DFA
             -> Int -- Następny wolny indeks
             -> (Set State, DFA.Transition, Set State)
-    buildDFA _ [] _ trans accept _ = (Set.fromList (Map.elems stateMapping), trans, accept)
+    buildDFA _ [] stateMap trans accept _ = (Set.fromList (Map.elems stateMap), trans, accept)
     
     buildDFA nfa (currentSet:rest) stateMap trans accept nextId = 
       let 
@@ -53,7 +53,10 @@ nfaToDFA nfa = DFA.DFA
                   | s <- Set.toList currentSet ]
                 
                 -- Oblicz domknięcie epsilon, czyli stany osiągalne (kandydat do zostania nowym stanem DFA)
-                closure = NFA.epsilonClosure nfa targets
+                closure = if Set.null targets 
+                          then Set.empty  -- specjalny zbiór dla stanu pułapkowego
+                          else NFA.epsilonClosure nfa targets
+                stateMapping = Map.fromList [(initClosure, 0), (Set.empty, -1)] -- -1 to trap state (pusty zbiór stanów NFA)
                 
                 -- Znajdź lub dodaj nowy stan DFA
                 (newStateId, newNextId, newStateMap) = 
@@ -75,10 +78,10 @@ nfaToDFA nfa = DFA.DFA
           symbolResults = map processSymbol (Set.toList (NFA.alphabet nfa))
           
           -- Zbieramy wyniki
-          newStates = [s | (s, _, _, _, _, _) <- symbolResults, not (Map.member s newStateMap)]
+          newStates = [s | (s, _, _, _, _, _) <- symbolResults, not (Map.member s stateMap)]
           newStateMap = foldl (\m (_, _, _, _, _, nm) -> Map.union m nm) stateMap symbolResults
-          newTrans = foldl (\t (_, _, nt, _, _, _) -> nt) trans symbolResults
-          newAccept = foldl (\a (_, _, _, na, _, _) -> na) accept symbolResults
+          newTrans = foldl (\t (_, _, nt, _, _, _) -> Map.union t nt) trans symbolResults
+          newAccept = accept <> foldMap (\(_, _, _, na, _, _) -> na) symbolResults
           maxNextId = maximum [ni | (_, _, _, _, ni, _) <- symbolResults]
           
       in buildDFA nfa (rest ++ newStates) newStateMap newTrans newAccept maxNextId
