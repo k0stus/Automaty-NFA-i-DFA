@@ -8,6 +8,7 @@ import qualified Data.Set as Set
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Maybe (fromMaybe)
+import Debug.Trace
 
 import qualified Auto.DFA as DFA
 import qualified Auto.NFA as NFA
@@ -26,7 +27,8 @@ nfaToDFA nfa = DFA.DFA
     -- Zmienna od indeksu tzw stanu pułapkowego, który oznacza pustą listę stanów z NFA
     trapStateId = -1
     -- Obliczamy początkowy stan DFA jako epsilon-domknięcie stanu startowego NFA
-    initClosure = NFA.epsilonClosure nfa (Set.singleton (NFA.startState nfa))
+    rawInitClosure = NFA.epsilonClosure nfa (Set.singleton (NFA.startState nfa))
+    initClosure = trace ("Init closure: " ++ show rawInitClosure) rawInitClosure
     
     -- Inicjalizujemy struktury danych
     initialState = 0 -- Nadajemy pierwszy indeks dla stanu startowego DFA
@@ -53,7 +55,8 @@ nfaToDFA nfa = DFA.DFA
     buildDFA nfa (currentSet:rest) stateMap trans accept nextId = 
       let 
           currentStateId = stateMap Map.! currentSet
-          alphabetList = Set.toList (NFA.alphabet nfa)
+          -- Log the current set being processed, tied to alphabetList evaluation
+          alphabetList = trace ("Processing DFA state (from NFA states): " ++ show currentSet) (Set.toList (NFA.alphabet nfa))
 
           -- Fold over symbols, accumulating new transitions, new states to explore (as NFA state sets),
           -- updated stateMap, the next available ID, and updated accepting states set.
@@ -65,9 +68,11 @@ nfaToDFA nfa = DFA.DFA
                   | s <- Set.toList currentSet ]
                 
                 -- Oblicz domknięcie epsilon, czyli stany osiągalne (kandydat do zostania nowym stanem DFA)
-                closure = if Set.null targets 
-                          then Set.empty -- specjalny zbiór dla stanu pułapkowego
-                          else NFA.epsilonClosure nfa targets
+                -- Ensure trace is evaluated by making it return the closure value.
+                rawClosure = if Set.null targets 
+                             then Set.empty -- specjalny zbiór dla stanu pułapkowego
+                             else NFA.epsilonClosure nfa targets
+                closure = trace ("  .. Symbol '" ++ show sym ++ "' -> Closure: " ++ show rawClosure) rawClosure
                 
                 -- Znajdź lub dodaj nowy stan DFA
                 (newStateId, finalNextIdAfterSymbol, finalStateMapAfterSymbol, isNewState) =
@@ -81,12 +86,15 @@ nfaToDFA nfa = DFA.DFA
                 updatedTrans = Map.insert (currentStateId, sym) newStateId accTrans
                 
                 -- Sprawdź czy nowy/docelowy stan DFA (reprezentowany przez 'closure') jest akceptujący
-                isTargetDFAStateAccepting = not (Set.null closure) && 
-                                     not (Set.null (Set.intersection closure (NFA.acceptStates nfa)))
-                
-                updatedAcceptingStates = if isTargetDFAStateAccepting 
-                                         then Set.insert newStateId accAcceptingStates 
-                                         else accAcceptingStates
+                isAccepting = not (Set.null (Set.intersection closure (NFA.acceptStates nfa)))
+      
+                -- Log if the state is accepted by embedding trace in the expression
+                updatedAcceptingStates = 
+                  if Set.null closure -- Stan pułapkowy
+                  then accAcceptingStates -- Zostaw bez zmian
+                  else if isAccepting
+                      then trace ("    .. DFA state " ++ show newStateId ++ " (from NFA states: " ++ show closure ++ ") is ACCEPTED") (Set.insert newStateId accAcceptingStates)
+                      else accAcceptingStates
                 
                 -- Dodaj nowy stan (closure) do kolejki do przetworzenia, jeśli jest nowy i niepusty
                 updatedNewStatesToExplore = if isNewState && not (Set.null closure) 
@@ -103,7 +111,7 @@ nfaToDFA nfa = DFA.DFA
           (processedTrans, newStatesForQueueReversed, processedAcceptingStates, processedStateMap, processedNextId) =
              foldl foldFunction initialFoldAccumulator alphabetList
           
-          -- Odwracamy listę nowych stanów, aby zachować kolejność odkrywania (opcjonalne, ale typowe dla BFS)
+          -- Odwracamy listę nowych stanów, aby zachować kolejność odkrywania
           newStatesForQueue = reverse newStatesForQueueReversed
           
       in buildDFA nfa (rest ++ newStatesForQueue) processedStateMap processedTrans processedAcceptingStates processedNextId
