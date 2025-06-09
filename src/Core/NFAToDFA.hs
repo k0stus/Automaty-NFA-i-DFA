@@ -23,12 +23,14 @@ nfaToDFA nfa = DFA.DFA
   , DFA.acceptStates = accepting
   }
   where
+    -- Zmienna od indeksu tzw stanu pułapkowego, który oznacza pustą listę stanów z NFA
+    trapStateId = -1
     -- Obliczamy początkowy stan DFA jako epsilon-domknięcie stanu startowego NFA
     initClosure = NFA.epsilonClosure nfa (Set.singleton (NFA.startState nfa))
     
     -- Inicjalizujemy struktury danych
     initialState = 0 -- Nadajemy pierwszy indeks dla stanu startowego DFA
-    stateMapping = Map.singleton initClosure initialState -- Mapowanie zbiorów do indeksów
+    stateMapping = Map.fromList [(initClosure, initialState), (Set.empty, trapStateId)] -- Mapowanie zbiorów do indeksów
     (dfaStates, dfaTrans, accepting) = 
       buildDFA nfa [initClosure] stateMapping Map.empty Set.empty 1
 
@@ -54,23 +56,26 @@ nfaToDFA nfa = DFA.DFA
                 
                 -- Oblicz domknięcie epsilon, czyli stany osiągalne (kandydat do zostania nowym stanem DFA)
                 closure = if Set.null targets 
-                          then Set.empty  -- specjalny zbiór dla stanu pułapkowego
+                          then Set.empty -- specjalny zbiór dla stanu pułapkowego
                           else NFA.epsilonClosure nfa targets
-                stateMapping = Map.fromList [(initClosure, 0), (Set.empty, -1)] -- -1 to trap state (pusty zbiór stanów NFA)
                 
                 -- Znajdź lub dodaj nowy stan DFA
-                (newStateId, newNextId, newStateMap) = 
-                  case Map.lookup closure stateMap of
+                (newStateId, newNextId, newStateMap) =
+                  if Set.null closure
+                  then (trapStateId, nextId, stateMap)
+                  else case Map.lookup closure stateMap of
                     Just idx -> (idx, nextId, stateMap) -- Stan już istnieje
-                    Nothing -> (nextId, nextId + 1, Map.insert closure nextId stateMap) -- Stan do tej pory nie istaniał
-                
+                    Nothing  -> (nextId, nextId + 1, Map.insert closure nextId stateMap) -- Stan do tej pory nie istaniał
+
                 -- Dodaj przejście do DFA z obecnego stanu do nowego stanu (pod wpływem symbolu sym)
                 currentStateId = stateMap Map.! currentSet -- Wiemy że currentSet jest w stateMap
                 newTrans = Map.insert (currentStateId, sym) newStateId trans
                 
                 -- Sprawdź czy nowy stan jest akceptujący, jeśli tak, dodaj go do zbioru akceptujących stanów w DFA
-                isAccepting = not $ Set.null $ Set.intersection closure (NFA.acceptStates nfa)
-                newAccept = if isAccepting then Set.insert newStateId accept else accept
+                isAccepting = not (Set.null closure) && not (Set.null (Set.intersection closure (NFA.acceptStates nfa)))
+                newAccept = if isAccepting 
+                            then Set.insert newStateId accept 
+                            else accept
                 
             in (closure, newStateId, newTrans, newAccept, newNextId, newStateMap)
           
@@ -78,7 +83,7 @@ nfaToDFA nfa = DFA.DFA
           symbolResults = map processSymbol (Set.toList (NFA.alphabet nfa))
           
           -- Zbieramy wyniki
-          newStates = [s | (s, _, _, _, _, _) <- symbolResults, not (Map.member s stateMap)]
+          newStates = [s | (s, _, _, _, _, _) <- symbolResults, not (Map.member s stateMap), not (Set.null s)]
           newStateMap = foldl (\m (_, _, _, _, _, nm) -> Map.union m nm) stateMap symbolResults
           newTrans = foldl (\t (_, _, nt, _, _, _) -> Map.union t nt) trans symbolResults
           newAccept = accept <> foldMap (\(_, _, _, na, _, _) -> na) symbolResults
