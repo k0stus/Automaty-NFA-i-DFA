@@ -56,12 +56,12 @@ nfaToDFA nfa = DFA.DFA
     buildDFA nfa (currentSet:rest) stateMap trans accept nextId = 
       let 
           currentStateId = stateMap Map.! currentSet
-          -- Log the current set being processed, tied to alphabetList evaluation
+          -- Log currentSet dla debuggowania
           -- alphabetList = trace ("Processing DFA state (from NFA states): " ++ show currentSet) (Set.toList (NFA.alphabet nfa))
           alphabetList = Set.toList (NFA.alphabet nfa)
 
-          -- Fold over symbols, accumulating new transitions, new states to explore (as NFA state sets),
-          -- updated stateMap, the next available ID, and updated accepting states set.
+          -- Fold funkcja do przetwarzania symboli dla obecnego zbioru stanów
+          -- Funkcja foldFunction przetwarza każdy symbol i aktualizuje przejścia, nowe stany do eksploracji, stany akceptujące i mapę stanów
           foldFunction (accTrans, accNewStatesToExplore, accAcceptingStates, accStateMap, accNextId) sym =
             let 
                 -- Oblicz stany osiągalne przez symbol dla currSet
@@ -70,7 +70,7 @@ nfaToDFA nfa = DFA.DFA
                   | s <- Set.toList currentSet ]
                 
                 -- Oblicz domknięcie epsilon, czyli stany osiągalne (kandydat do zostania nowym stanem DFA)
-                -- Ensure trace is evaluated by making it return the closure value.
+                -- Log closure dla debuggowania
                 -- rawClosure = if Set.null targets 
                 --              then Set.empty -- specjalny zbiór dla stanu pułapkowego
                 --              else NFA.epsilonClosure nfa targets
@@ -110,8 +110,8 @@ nfaToDFA nfa = DFA.DFA
             in (updatedTrans, updatedNewStatesToExplore, updatedAcceptingStates, finalStateMapAfterSymbol, finalNextIdAfterSymbol)
           
           -- Inicjalizujemy wartości dla folda.
-          -- Przejścia (`trans`), stany akceptujące (`accept`), `stateMap` i `nextId` są przekazywane z poprzednich kroków budowy DFA.
-          -- `newStatesToExploreForCurrentSet` jest pusta na początku przetwarzania symboli dla `currentSet`.
+          -- Przejścia (trans), stany akceptujące (accept), stateMap i nextId są przekazywane z poprzednich kroków budowy DFA.
+          -- newStatesToExploreForCurrentSet jest pusta na początku przetwarzania symboli dla currentSet.
           initialFoldAccumulator = (trans, [], accept, stateMap, nextId)
           
           (processedTrans, newStatesForQueueReversed, processedAcceptingStates, processedStateMap, processedNextId) =
