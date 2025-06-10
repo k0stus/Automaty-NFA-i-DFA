@@ -66,12 +66,13 @@ runFromFile path = do
   nfa <- readNFAFromFile path
   runWithNFA nfa
 
--- Główne przetwarzanie NFA → DFA → min DFA
+-- Główne przetwarzanie NFA do DFA do min DFA
 runWithNFA :: NFA -> IO ()
 runWithNFA nfa = do
   putStrLn "=== NFA ==="
   putStrLn (prettyPrintNFA nfa)
-
+  -- putStrLn $ "DEBUG: initial epsilon-closure of startState of nfa = " ++ show (epsilonClosure nfa (Set.singleton (Auto.NFA.startState nfa)))
+  
   let dfa = nfaToDFA nfa
   putStrLn "\n=== DFA ==="
   putStrLn (prettyPrintDFA dfa)
@@ -80,7 +81,6 @@ runWithNFA nfa = do
   putStrLn "\n=== Min DFA ==="
   putStrLn (prettyPrintDFA minDfa)
 
--- Pomoc
 printUsage :: IO ()
 printUsage = do
   putStrLn "Użycie:"
