@@ -8,17 +8,26 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.List (find)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromMaybe)
 
 import Auto.DFA
 import Auto.NFA (State, Symbol)
 
 -- Funkcja minimalizacji deterministycznego automatu skończonego (DFA)
 minimizeDFA :: DFA -> DFA
-minimizeDFA dfa =
+minimizeDFA oldDFA =
   let
+    -- Usuń nieosiągalne stany
+    reachable = reachableStates oldDFA
+    dfa = oldDFA
+      { states = reachable
+      , transition = Map.filterWithKey (\(s, _) t -> s `Set.member` reachable && t `Set.member` reachable) (transition oldDFA)
+      , acceptStates = Set.filter (`Set.member` reachable) (acceptStates oldDFA)
+      }
+
     -- 1. Inicjalny podział: stany akceptujące i nieakceptujące
-    initialPartition = [acceptStates dfa, Set.difference (states dfa) (acceptStates dfa)]
+    initialPartition = filter (not . Set.null)
+      [acceptStates dfa, Set.difference (states dfa) (acceptStates dfa)]
 
     -- 2. Rekurencyjnie rafinujemy grupy, aż podział się ustabilizuje
     refine :: [Set State] -> [Set State]
@@ -41,9 +50,10 @@ minimizeDFA dfa =
                       [ (classify s, Set.singleton s) | s <- Set.toList group ]
       in Map.elems buckets
 
-    -- 4. Znajduje grupę, do której należy dany stan
+    -- 4. Znajduje grupę, do której należy dany stan (bezpiecznie)
     findGroup :: State -> [Set State] -> Set State
-    findGroup s = fromJust . find (Set.member s)
+    findGroup s groups = fromMaybe (error $ "State " ++ show s ++ " not found in any group") $
+      find (Set.member s) groups
 
     -- 5. Funkcja przejścia: -1 oznacza "dead state"
     move :: State -> Symbol -> State
@@ -60,6 +70,7 @@ minimizeDFA dfa =
     newTransitions =
       [ ((stateMap Map.! group, a), stateMap Map.! findGroup t groups)
       | group <- groups
+      , not (Set.null group)
       , a <- Set.toList (alphabet dfa)
       , let t = move (Set.findMin group) a
       , t /= -1
@@ -75,11 +86,24 @@ minimizeDFA dfa =
       , let sid = stateMap Map.! g
       , not $ Set.null $ Set.intersection g (acceptStates dfa)
       ]
-
-  in DFA
+    
+    newDFA = DFA
       { states       = Set.fromList (Map.elems stateMap)
       , alphabet     = alphabet dfa
       , transition   = Map.fromList newTransitions
       , startState   = newStart
       , acceptStates = newAccepts
       }
+    
+  in newDFA
+
+-- Funkcja pomocnicza: znajduje stany osiągalne od stanu początkowego
+reachableStates :: DFA -> Set State
+reachableStates dfa = go Set.empty [startState dfa]
+  where
+    go visited [] = visited
+    go visited (s:ss)
+      | s `Set.member` visited = go visited ss
+      | otherwise =
+          let next = [t | ((s', _), t) <- Map.toList (transition dfa), s' == s]
+          in go (Set.insert s visited) (next ++ ss)

@@ -54,6 +54,13 @@ redundantDFA2 = DFA.DFA
 x |> f = f x
 
 main :: IO ()
+
+main = do
+  putStrLn $ prettyPrintDFA redundantDFA1
+  putStrLn(prettyPrintDFA(minimizeDFA redundantDFA1))
+  putStrLn $ prettyPrintDFA redundantDFA2
+  putStrLn(prettyPrintDFA(minimizeDFA redundantDFA2))
+
 {-
 main = hspec $ do
   describe "DFA minimization" $ do
@@ -67,9 +74,3 @@ main = hspec $ do
       DFA.acceptsDFA minimized "aa" `shouldBe` True
       DFA.acceptsDFA minimized "a"  `shouldBe` False
   -}    
-
-main = do
-  putStrLn $ prettyPrintDFA redundantDFA1
-  putStrLn(prettyPrintDFA(minimizeDFA redundantDFA1))
-  putStrLn $ prettyPrintDFA redundantDFA2
-  putStrLn(prettyPrintDFA(minimizeDFA redundantDFA2))
