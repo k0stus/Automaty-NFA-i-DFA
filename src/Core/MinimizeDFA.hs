@@ -17,8 +17,11 @@ import Auto.NFA (State, Symbol)
 minimizeDFA :: DFA -> DFA
 minimizeDFA oldDFA =
   let
+    -- Usuń stany martwe
+    aliveStateDFA = removeDeadStates oldDFA
+
     -- Usuń nieosiągalne stany
-    reachable = reachableStates oldDFA
+    reachable = reachableStates aliveStateDFA
     dfa = oldDFA
       { states = reachable
       , transition = Map.filterWithKey (\(s, _) t -> s `Set.member` reachable && t `Set.member` reachable) (transition oldDFA)
@@ -107,3 +110,36 @@ reachableStates dfa = go Set.empty [startState dfa]
       | otherwise =
           let next = [t | ((s', _), t) <- Map.toList (transition dfa), s' == s]
           in go (Set.insert s visited) (next ++ ss)
+
+-- Funkcja pomocnicza: znajduje stany, z których da się dotrzeć do stanu akceptującego
+removeDeadStates :: DFA -> DFA
+removeDeadStates dfa =
+  let
+    -- Odwróć graf przejść (dla "wstecznego" DFS)
+    reversedTransitions :: Map State [State]
+    reversedTransitions = Map.fromListWith (++)
+      [ (t, [s]) | ((s, _), t) <- Map.toList (transition dfa) ]
+
+    -- DFS od stanów akceptujących w "tył"
+    reachableFromAccepting :: Set State
+    reachableFromAccepting = go Set.empty (Set.toList $ acceptStates dfa)
+      where
+        go visited [] = visited
+        go visited (s:ss)
+          | s `Set.member` visited = go visited ss
+          | otherwise =
+              let preds = Map.findWithDefault [] s reversedTransitions
+              in go (Set.insert s visited) (preds ++ ss)
+
+    -- Stany, które są zarówno osiągalne od startu, jak i mogą dojść do akceptujących
+    liveStates = Set.intersection (reachableStates dfa) reachableFromAccepting
+
+    -- Filtrowanie przejść tylko do i z liveStates
+    newTransitions = Map.filterWithKey (\(s, _) t -> s `Set.member` liveStates && t `Set.member` liveStates) (transition dfa)
+
+  in dfa
+     { states = liveStates
+     , transition = newTransitions
+     , acceptStates = Set.filter (`Set.member` liveStates) (acceptStates dfa)
+     , startState = startState dfa -- nie zmieniamy — może być i tak już niedostępny, ale wtedy zostanie wycięty
+     }
