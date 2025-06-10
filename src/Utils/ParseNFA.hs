@@ -42,6 +42,6 @@ readNFAFromFile path = do
                 -> IO (Map.Map (State, Maybe Symbol) (Set.Set State))
     parseLine acc line =
       case words line of
-        [s1, [sym], s2] -> return $ Map.insertWith Set.union (read s1, Just sym) (Set.singleton (read s2)) acc
         [s1, "ε", s2]   -> return $ Map.insertWith Set.union (read s1, Nothing) (Set.singleton (read s2)) acc
+        [s1, [sym], s2] -> return $ Map.insertWith Set.union (read s1, Just sym) (Set.singleton (read s2)) acc
         _               -> error $ "Nieprawidłowa linia przejścia: " ++ line
